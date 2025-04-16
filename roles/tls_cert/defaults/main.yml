@@ -1,0 +1,15 @@
+---
+tls:
+  acme:
+    account_email: null
+    account_key: null
+    directory: "staging"
+  dns_provider:
+    digital_ocean:
+      oauth_token: null
+      domain: null
+  key: {}
+  csr: {}
+  cert: {}
+  pkcs12: {}
+

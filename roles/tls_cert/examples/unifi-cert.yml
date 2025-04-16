@@ -1,0 +1,56 @@
+---
+# This is an example playbook that will generate keys
+# a CSR and then a signed certificate using the letsencrypt
+# staging directory and digitalocean DNS for dns-01 challenge
+- name: Deploy letsencrypt certs to unifi controller
+  hosts: unifi
+  become: true
+  become_method: su
+  vars:
+    tls:
+      acme:
+        account_email: "{{ vault_acme_account_email }}"
+        account_key: "{{ vault_acme_account_key }}"
+        directory: "staging"
+      dns_provider:
+        digital_ocean:
+          oauth_token: "{{ vault_digital_ocean.api_key }}"
+          domain: "{{ vault_digital_ocean.domain }}"
+
+  roles:
+    - tls-cert
+
+# Once the certs are signed, they are copied to the appropriate
+# directory on a Unifi controller and nginx is restarted.
+- name: Copy certificate and key to unifi directory
+  hosts: unifi
+  become: true
+  become_method: su
+  vars:
+    ansible_user: "{{ vault_unifi_user }}"
+    ansible_become_pass: "{{ vault_unifi_password }}"
+    cert_files:
+      - { src: "/etc/ssl/private/{{ inventory_hostname }}.pem", dest: "/data/unifi-core/config/unifi-core.key" }
+      - { src: "/etc/ssl/certs/{{ inventory_hostname }}.pem", dest: "/data/unifi-core/config/unifi-core.crt" }
+  tasks:
+    - file:
+        path: "{{ item.dest }}"
+        attributes: "-i"
+      with_items: "{{ cert_files }}"
+
+    - copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        remote_src: true
+      with_items: "{{ cert_files }}"
+      register: "cert_files_copy"
+
+    - file:
+        path: "{{ item.dest }}"
+        attributes: "+i"
+      with_items: "{{ cert_files }}"
+
+    - ansible.builtin.systemd_service:
+        state: restarted
+        name: nginx
+      when: "cert_files_copy.changed"

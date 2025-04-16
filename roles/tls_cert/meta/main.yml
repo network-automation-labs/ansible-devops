@@ -1,0 +1,7 @@
+galaxy_info:
+  author: Andrew Bates
+  description: tls-cert is a role to assist in creating private keys and certificates using letsencrypt and the DNS-01 challenge.
+  license: Apache-2.0
+  min_ansible_version: 2.1
+  galaxy_tags: []
+  role_name: tls_cert

@@ -1,0 +1,28 @@
+---
+tls_defaults:
+  key:
+    dir: "/etc/ssl/private"
+    filename: "{{ inventory_hostname }}.pem"
+    p12_filename: "{{ inventory_hostname }}.p12"
+    size: 256
+    type: "ECC"
+    curve: "secp384r1"
+  cert:
+    dir: "/etc/ssl/certs"
+    filename: "{{ inventory_hostname }}.pem"
+  pkcs12:
+    passphrase: ""
+    friendly_name: "{{ inventory_hostname }}"
+  acme:
+    directories:
+      staging: "https://acme-staging-v02.api.letsencrypt.org/directory"
+      production: "https://acme-v02.api.letsencrypt.org/directory"
+
+_tls_vars:
+  key: "{{ tls_defaults.key | ansible.builtin.combine(tls.key | default({})) }}"
+  csr: "{{ tls.csr | default({}) }}"
+  cert: "{{ tls_defaults.cert | ansible.builtin.combine(tls.cert | default({})) }}"
+  pkcs12: "{{ tls_defaults.pkcs12 | ansible.builtin.combine(tls.pkcs12 | default({})) }}"
+  acme:
+    directory: "{{ tls_defaults.acme.directories[tls.acme.directory | default('staging')] }}"
+  dns_provider: "{{ tls.dns_provider }}"

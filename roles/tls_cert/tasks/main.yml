@@ -1,0 +1,23 @@
+---
+- name: "100 - Create or Load Private Key"
+  network_automation_labs.devops.tls_private_key:
+    curve: "secp384r1"
+    path: "{{ _tls_vars.key.dir }}/{{ _tls_vars.key.filename }}"
+    size: 256
+    type: "ECC"
+  register: tls_cert
+
+- name: "200 - Create Certificate Signing Request"
+  network_automation_labs.devops.tls_csr:
+    private_key_content: "{{ tls_cert.private_key_content }}"
+    options: "{{ _tls_vars.csr }}"
+  register: csr
+
+- name: "300 - Create Certificate"
+  network_automation_labs.devops.tls_certificate:
+    path: "{{ _tls_vars.cert.dir }}/{{ _tls_vars.cert.filename }}"
+    csr_content: "{{ csr.content }}"
+    acme_directory: "{{ _tls_vars.acme.directory }}"
+    acme_account_email: "{{ tls.acme.account_email }}"
+    acme_account_key: "{{ tls.acme.account_key }}"
+    dns_provider: "{{ _tls_vars.dns_provider }}"

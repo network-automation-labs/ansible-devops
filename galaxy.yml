@@ -1,0 +1,18 @@
+namespace: network_automation_labs
+name: devops
+version: 1.0.0
+readme: README.md
+authors:
+- Andrew Bates <abates@omeganetserv.com>
+description: A collection of roles and utilities for managing devops style deployments
+license:
+- Apache 2.0
+license_file: 'LICENSE'
+tags: []
+
+dependencies:
+  community.crypto: "*"
+  community.dns: "*"
+
+repository: https://github.com/network_automation_labs/ansible-devops
+issues: https://github.com/network_automation_labs/ansible-devops/issues

@@ -1,0 +1,59 @@
+---
+- name: "Gathering Facts about system services"
+  service_facts:
+
+- name: "Gathering Network Facts"
+  setup:
+    gather_subset:
+      - "network"
+
+- name: "Install NFTables"
+  package:
+    name: "nftables"
+    state: "latest"
+
+- name: "Create config directories"
+  file:
+    path: "/etc/nftables.d"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0700"
+
+- name: "Copy Main Config"
+  template: 
+    src: "etc/nftables.conf.j2"
+    dest: "/etc/nftables.conf"
+    owner: "root"
+    group: "root"
+    mode: "0750"
+  notify: "restart nft"
+
+- name: "Copy Service Configs"
+  template: 
+    src: "{{ item }}.j2"
+    dest: "/{{ item }}"
+    owner: "root"
+    group: "root"
+    mode: "0600"
+  notify: "restart nft"
+  with_items:
+    - "etc/nftables.d/001-knock.conf"
+    - "etc/nftables.d/005-upnp.conf"
+    - "etc/nftables.d/010-service-rules.conf"
+    - "etc/nftables.d/020-drop-unknown-forward.conf"
+    - "etc/nftables.d/999-log.conf"
+
+- name: "Disable default firewall services"
+  service: "name={{ item }} enabled=no state=stopped"
+  ignore_errors: "yes"
+  when: "item in ansible_facts.services"
+  with_items:
+    - "iptables"
+    - "firewalld"
+    - "ufw"
+    - "ferm"
+
+- name: "Setup logging"
+  include_tasks: "log.yml"
+

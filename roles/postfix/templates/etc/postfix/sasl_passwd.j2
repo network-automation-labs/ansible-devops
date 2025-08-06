@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+{% if postfix.relay.auth %}
+{{ postfix.relay | network_automation_labs.devops.postfix_relay_host }}   {{ postfix.relay.auth.username }}:{{ postfix.relay.auth.password }}
+{% endif %}

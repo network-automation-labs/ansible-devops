@@ -1,0 +1,11 @@
+---
+- name: restart postfix
+  service: name=postfix state=restarted enabled=yes
+
+- name: "rebuild aliases"
+  command: "newaliases"
+  notify: "restart postfix"
+
+- name: "rebuild sasl database"
+  command: "postmap hash:/etc/postfix/sasl_passwd"
+  notify: "restart postfix"

@@ -1,11 +1,16 @@
-from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
-
-from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
+from ansible.plugins.action import ActionBase
+from ansible.utils.display import Display
+from ansible_collections.network_automation_labs.devops.plugins.module_utils.common import (
+    ActionPluginMixin,
+    list_action_plugins,
+)
+from ansible_collections.network_automation_labs.devops.plugins.module_utils.crypto import (
+    CryptoPluginMixin,
+)
 
-from ansible_collections.network_automation_labs.devops.plugins.module_utils.common import ActionPluginMixin, list_action_plugins
-from ansible_collections.network_automation_labs.devops.plugins.module_utils.crypto import CryptoPluginMixin
+display = Display()
+
 
 class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
     def run(self, tmp=None, task_vars=None):
@@ -25,32 +30,47 @@ class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
         )
         num_providers = len(module_args["dns_provider"])
         if num_providers > 1:
-            raise AnsibleActionFail(f"Got {num_providers} dns providers, but only one dns_provider can be given.")
+            raise AnsibleActionFail(
+                f"Got {num_providers} dns providers, but only one dns_provider can be given."
+            )
 
         dns_provider = next(iter(module_args["dns_provider"].keys()))
 
-        dns_providers = [plugin.removeprefix("dns_provider_") for plugin in list_action_plugins(lambda action_plugin: action_plugin.startswith("dns_provider_"))]
+        dns_providers = [
+            plugin.removeprefix("dns_provider_")
+            for plugin in list_action_plugins(
+                lambda action_plugin: action_plugin.startswith("dns_provider_")
+            )
+        ]
         if dns_provider not in dns_providers:
-            raise AnsibleActionFail(f"Got invalid dns provider {dns_provider} choose one of {dns_providers}")
+            raise AnsibleActionFail(
+                f"Got invalid dns provider {dns_provider} choose one of {dns_providers}"
+            )
 
         dns_provider_options = module_args["dns_provider"][dns_provider]
 
         # 1. Load existing certificate
-        certificate_content, loaded = self.load_file_if_exists(task_vars, module_args["path"])
+        certificate_content, loaded = self.load_file_if_exists(
+            task_vars, module_args["path"]
+        )
         certificate = None
         if loaded and certificate_content is not None:
             certificate = self.run_local_module(
                 "community.crypto.x509_certificate_info",
                 task_vars,
                 content=certificate_content,
-                valid_at={"month": "+30d"}
+                valid_at={"month": "+30d"},
             )
 
         # 2. Load signing request
-        csr_content = self.load_or_content(task_vars, module_args["csr_path"], module_args["csr_content"])
+        csr_content = self.load_or_content(
+            task_vars, module_args["csr_path"], module_args["csr_content"]
+        )
         if csr_content is None:
             result["failed"] = True
-            result["msg"] = "Empty certificate sigining request. Provide valid csr_path or csr_content."
+            result["msg"] = (
+                "Empty certificate sigining request. Provide valid csr_path or csr_content."
+            )
             return result
 
         csr = self.run_local_module(
@@ -60,7 +80,11 @@ class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
         )
 
         # 3. Check if needs re-signing
-        if certificate is None or not certificate["valid_at"]["month"] or csr["subject_alt_name"] != certificate["subject_alt_name"]:
+        if (
+            certificate is None
+            or not certificate["valid_at"]["month"]
+            or csr["subject_alt_name"] != certificate["subject_alt_name"]
+        ):
             self.display_changed("Certificate needs to be re-signed.")
             # 4. Generate challenge
             dns_challenge = self.run_remote_module(
@@ -78,8 +102,11 @@ class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
             )
 
             # collect the TXT records
-            txt_records = [{"name": f"{name}.", "values": data, "mode": "subset"} for name, data in dns_challenge["challenge_data_dns"].items()]
-
+            # TODO: what is "mode" used for?
+            txt_records = [
+                {"name": f"{name}.", "values": data, "mode": "subset"}
+                for name, data in dns_challenge["challenge_data_dns"].items()
+            ]
             # 5. Set challenge TXT records
             self.run_action_plugin(
                 f"network_automation_labs.devops.dns_provider_{dns_provider}",
@@ -114,6 +141,7 @@ class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
                 data=dns_challenge,
                 force=True,
             )
+            # self.display_changed(f"Wrote certificate to {module_args['path']}")
             result["changed"] = True
 
             # 8. Cleanup

@@ -1,0 +1,33 @@
+#jinja2:lstrip_blocks: True
+# {{ ansible_managed }}
+
+table inet filter {
+{% for i in range(knock_sequence|length) %}
+  set knock_stage{{ i }} {
+    type ipv4_addr
+    flags timeout
+  }
+{% endfor %}
+  set open_door {
+    type ipv4_addr
+    flags timeout
+  }
+
+  chain input {
+    ct state { new } jump knock
+  }
+
+  chain knock {
+    ct state new ip saddr @open_door tcp dport 22 accept
+{% for i in range(knock_sequence|length) | reverse %}
+  {% set knock = knock_sequence[i] %}
+    {% if i == knock_sequence|length - 1 %}
+    ip saddr @knock_stage{{ i-1 }} {{ knock.protocol }} dport {{ knock.port }} add @open_door { ip saddr timeout 2s }
+    {% elif i-1 > 0 %}
+    ip saddr @knock_stage{{ i-1 }} {{ knock.protocol }} dport {{ knock.port }} add @knock_stage{{ i }} { ip saddr timeout 2s }
+    {% else %}
+    {{ knock.protocol }} dport {{ knock.port }} add @knock_stage{{ i }} { ip saddr timeout 2s }
+    {% endif %}
+{% endfor %}
+  }
+}

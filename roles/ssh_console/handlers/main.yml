@@ -1,0 +1,5 @@
+---
+- name: "restart ssh"
+  service:
+    name: "{{ ssh_console[ansible_os_family].service }}"
+    state: "restarted"

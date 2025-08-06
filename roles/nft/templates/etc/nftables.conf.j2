@@ -1,0 +1,110 @@
+#jinja2:lstrip_blocks: True
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+
+flush ruleset inet
+
+# Uncomment the following to run traces, make sure to update
+# <proto> and <port> accordingly
+#table ip filter {
+#  chain trace_chain {
+#    type nat hook prerouting priority dstnat - 1; policy accept;
+#    <proto> dport <port> meta nftrace set 1
+#  }
+#}
+# Can be tested with:
+# nc -v -z -w 1 <hostname> <port>
+#
+# View the trace with:
+# nft monitor trace
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter - 1; policy {% if firewall_enabled %}drop{% else %}accept{% endif %};
+ 
+    # short circuit connected traffic
+    ct state { established, related } accept
+
+    # Allow loopback traffic
+    iifname lo accept
+
+    # respond to ping
+    ip protocol icmp accept
+
+    # IPv6 control traffic
+    icmpv6 type {nd-neighbor-solicit, nd-neighbor-solicit, nd-neighbor-advert} accept
+  
+    # broadcast traffic
+    ip daddr 255.255.255.255 accept
+    {% for iface, broadcast in hostvars[inventory_hostname] | network_automation_labs.devops.nft_broadcast_addresses | network_automation_labs.devops.dict2tuple %}
+    ip daddr {{ broadcast }} accept # {{ iface }} traffic
+    {% endfor %}
+    # / broadcast traffic
+
+    {% if dhcp_enabled %}
+    # Allow incoming bootp packets
+    udp dport 68 accept
+    {% endif %}
+
+    # Multicast rules
+    # All hosts group
+    ip daddr 224.0.0.1 ip protocol { udp, igmp } accept
+
+    # mDNS group
+    ip daddr 239.255.255.250 ip protocol { igmp, udp } accept
+    ip daddr 224.0.0.251 ip protocol igmp accept
+    ip daddr 224.0.0.251 udp dport 5353 accept
+    # / Multicast rules
+
+    # explicit drop and fail2ban contain rules that
+    # may be updated by other processes, so to help
+    # reduce the burden of automated management they
+    # are in their own chains
+    jump explicit-drop
+    jump fail2ban-default
+    jump allow-from-jumphosts
+  }
+
+  chain allow-from-jumphosts {
+    {% for host in site["jumphosts"] %}
+    ct state { new } ip saddr {{ host }} tcp dport 22 counter accept
+    {% endfor %}
+  }
+
+  chain explicit-drop {
+    tcp sport 1900 drop
+    tcp dport 1900 drop
+    udp sport 1900 drop
+    udp dport 1900 drop
+  }
+
+  chain fail2ban-default {
+  }
+
+  chain output {
+    type filter hook output priority filter - 1; policy accept;
+
+    jump explicit-output
+    ct state { invalid } log prefix "{{ nftables.log_prefix }}(DROP:invalid) " drop
+    ct state { established, related } accept
+  }
+
+  chain explicit-output {
+  }
+
+  chain forward {
+    type filter hook forward priority filter - 1; policy accept;
+  }
+
+  chain prerouting {
+    type nat hook prerouting priority dstnat - 1; policy accept;
+  }
+
+  chain postrouting {
+    type nat hook postrouting priority srcnat - 1; policy accept;
+    ct state { established, related } accept
+  }
+}
+
+include "nftables.d/*"
+

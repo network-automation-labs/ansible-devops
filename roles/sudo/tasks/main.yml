@@ -1,0 +1,17 @@
+---
+- name: Add sudo group
+  group: >
+    name=sudo
+    system=yes
+
+- name: Updated sudoers file
+  lineinfile: 
+    dest: /etc/sudoers 
+    line: "{{ item }}"
+    state: present
+  with_items:
+    - "%sudo\tALL=(ALL:ALL) ALL"
+    - "#includedir /etc/sudoers.d"
+
+- name: Set ansible user's sudo defaults
+  template: src=etc/sudoers.d/ansible.j2 dest=/etc/sudoers.d/ansible owner=root group=root mode=0440

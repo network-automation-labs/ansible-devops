@@ -1,0 +1,9 @@
+- name: Install pip
+  package: name=python3-pip state=latest
+
+- name: Install Docker Compose
+  package:
+    name:
+      - docker-compose-plugin
+      - python3-compose
+    state: latest

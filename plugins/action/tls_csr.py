@@ -1,10 +1,14 @@
-from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
-
 from ansible.plugins.action import ActionBase
+from ansible.utils.display import Display
+from ansible_collections.network_automation_labs.devops.plugins.module_utils.common import (
+    ActionPluginMixin,
+)
+from ansible_collections.network_automation_labs.devops.plugins.module_utils.crypto import (
+    CryptoPluginMixin,
+)
 
-from ansible_collections.network_automation_labs.devops.plugins.module_utils.common import ActionPluginMixin
-from ansible_collections.network_automation_labs.devops.plugins.module_utils.crypto import CryptoPluginMixin
+display = Display()
+
 
 class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
     def run(self, tmp=None, task_vars=None):
@@ -18,7 +22,7 @@ class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
         _, module_args = self.validate_argument_spec(
             argument_spec={
                 "private_key_content": {"type": "str", "required": True},
-                "options": {"type": "dict", "required": False, "default": {}}
+                "options": {"type": "dict", "required": False, "default": {}},
             },
         )
         with self.tempfile(task_vars) as filename:

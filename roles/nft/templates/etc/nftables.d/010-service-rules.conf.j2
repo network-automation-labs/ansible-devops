@@ -1,0 +1,22 @@
+#jinja2:lstrip_blocks: True
+# {{ ansible_managed }}
+
+table inet filter {
+{% for name, chain in (hostvars[inventory_hostname] | network_automation_labs.devops.nft_extract_config).items() %}
+  chain {{ name }} {
+  {% if chain.policy %}
+    policy {{ chain.policy }}
+  {% endif %}
+  {% for rule in chain.rules | default([]) %}
+    {% if rule.comment is defined %}
+      {% if loop.index0 > 0 %}
+
+      {% endif %}
+    # {{ rule.comment }}
+    {% endif %}
+    {{ rule | network_automation_labs.devops.nft_create_rule }}
+  {% endfor %}
+  }
+{% endfor %}
+}
+

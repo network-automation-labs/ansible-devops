@@ -1,0 +1,9 @@
+#jinja2:lstrip_blocks: True
+# {{ ansible_managed }}
+table inet filter {
+  chain input {
+    {% if firewall_enabled %}
+    log prefix "{{ nftables.log_prefix }}(DROP:default) "
+    {% endif %}
+  }
+}

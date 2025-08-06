@@ -1,0 +1,26 @@
+#jinja2:lstrip_blocks: True
+# {{ ansible_managed }}
+
+table inet filter {
+  set upnp {
+    type ipv4_addr . inet_service
+    flags timeout
+  }
+
+  chain input {
+    jump upnp_in
+  }
+
+  chain output {
+    jump upnp_out
+  }
+
+  chain upnp_in {
+    ip daddr . udp dport @upnp accept
+  }
+
+  chain upnp_out {
+    ip daddr 239.255.255.250/32 udp dport 1900 add @upnp { ip saddr . udp sport timeout 60s }
+  }
+}
+

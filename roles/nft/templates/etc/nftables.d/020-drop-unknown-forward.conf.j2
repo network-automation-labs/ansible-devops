@@ -1,0 +1,13 @@
+#jinja2:lstrip_blocks: True
+# {{ ansible_managed }}
+
+table inet filter {
+  chain postrouting {
+    {% for interface in hostvars[inventory_hostname] | network_automation_labs.devops.nft_interfaces(["lo", "docker0"]) %}
+      {% if not interface.device.startswith("veth") and not interface.device.startswith("br") %}
+    iifname "{{ interface.device }}" drop
+      {% endif %}
+    {% endfor %}
+  }
+}
+

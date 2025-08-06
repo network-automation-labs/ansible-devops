@@ -1,0 +1,14 @@
+/var/log/firewall/firewall.log
+{
+	rotate 21
+	daily
+	missingok
+	notifempty
+	compress
+	delaycompress
+	sharedscripts
+	postrotate
+		invoke-rc.d rsyslog rotate >/dev/null 2>&1 || true
+	endscript
+}
+

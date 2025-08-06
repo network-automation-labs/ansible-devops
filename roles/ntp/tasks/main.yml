@@ -1,0 +1,6 @@
+- name: Remove ntp if it is installed
+  package: name=ntp state=absent
+
+- name: Install Chrony
+  package: name=chrony
+

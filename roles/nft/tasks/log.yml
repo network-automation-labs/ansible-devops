@@ -1,0 +1,29 @@
+---
+- name: "Look for /etc/rsyslog.d directory"
+  stat:
+    path: "/etc/rsyslog.d"
+  register: "rsyslog"
+
+- name: "Setup rsyslog firewall log"
+  template: 
+    src: "etc/rsyslog.d/20-firewall.conf.j2"
+    dest: "/etc/rsyslog.d/20-firewall.conf"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  notify: "restart rsyslog"
+  when: "rsyslog.stat.exists"
+
+- name: "Look for /etc/logrotate.d directory"
+  stat:
+    path: "/etc/logrotate.d"
+  register: "logrotate"
+
+- name: "Setup firewall log rotate"
+  template: 
+    src: "etc/logrotate.d/firewall.j2"
+    dest: "/etc/logrotate.d/firewall"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  when: "logrotate.stat.exists"

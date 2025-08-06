@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+{% for user, aliases in postfix.aliases | default({}) %}
+{{ user }}: {{ aliases | join(", ") }}
+{% endfor %}

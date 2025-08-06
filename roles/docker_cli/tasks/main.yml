@@ -1,0 +1,10 @@
+- name: Install pip
+  package: name=python3-pip state=latest
+
+- name: Install Docker
+  package:
+    name:
+      - docker-ce-cli
+      - python3-docker
+    state: latest
+

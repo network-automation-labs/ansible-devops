@@ -1,0 +1,6 @@
+---
+ssh_console:
+  RedHat:
+    service: "sshd"
+  Debian:
+    service: "ssh"

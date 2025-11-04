@@ -14,9 +14,26 @@ def dict2tuple(mydict):
     return [(key, value) for key, value in mydict.items()]
 
 
+deb_architectures = {
+    "armv6l": "armhf",
+    "armv7l": "armhf",
+    "aarch64": "arm64",
+    "x86_64": "amd64",
+    "i386": "i386",
+}
+
+
+def deb_architecture(ansible_architecture):
+    """Translate the ansible architecture string to common debian architecture."""
+    return deb_architectures.get(ansible_architecture, "unknown")
+
+
 class FilterModule:
     """Utility filters."""
 
     def filters(self):
         """Get the filter name to method mapping."""
-        return {"dict2tuple": dict2tuple}
+        return {
+            "deb_architecture": deb_architecture,
+            "dict2tuple": dict2tuple,
+        }

@@ -1,0 +1,23 @@
+- name: "Install the Network Automation Labs repo on Debian Systems"
+  when: ansible_os_family == 'Debian'
+  block:
+    - package:
+        name:
+          - ca-certificates
+        state: latest
+
+    - ansible.builtin.file:
+        path: "/etc/apt/keyrings"
+        state: "directory"
+        mode: "0755"
+
+    - ansible.builtin.get_url:
+        url: "https://network-automation-labs.github.io/network-automation-labs.asc"
+        dest: "/etc/apt/keyrings/nal.asc"
+
+    - ansible.builtin.apt_repository:
+        repo: "deb [arch={{ ansible_architecture | network_automation_labs.devops.deb_architecture }} signed-by=/etc/apt/keyrings/nal.asc] https://network-automation-labs.github.io/deb stable main"
+        state: "present"
+        filename: "nal"
+        update_cache: true
+

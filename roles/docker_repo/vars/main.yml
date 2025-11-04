@@ -1,9 +1,0 @@
----
-deb_architectures:
-  "armv6l": "armhf"
-  "armv7l": "armhf"
-  "aarch64": "arm64"
-  "x86_64": "amd64"
-  "i386": "i386"
-
-docker_architecture: "{{ deb_architectures[ansible_architecture] }}"

@@ -2,16 +2,21 @@
 
 from collections.abc import Mapping
 
-from ansible.errors import AnsibleFilterTypeError
+import ansible.errors
+
+try:
+    AnsibleTypeError = ansible.errors.AnsibleTypeError  # type: ignore
+except AttributeError:
+    AnsibleTypeError = ansible.errors.AnsibleFilterTypeError
 
 
-def dict2tuple(mydict):
-    """Conver a dictionary to a list of (key, value) tuples."""
-    if not isinstance(mydict, Mapping):
-        raise AnsibleFilterTypeError(
-            f"dict2tuple requires a dictionary, got {type(mydict)} instead."
+def dict2tuple(dictionary):
+    """Convert a dictionary to a list of (key, value) tuples."""
+    if not isinstance(dictionary, Mapping):
+        raise AnsibleTypeError(
+            f"dict2tuple requires a dictionary, got {type(dictionary)} instead."
         )
-    return [(key, value) for key, value in mydict.items()]
+    return [(key, value) for key, value in dictionary.items()]
 
 
 deb_architectures = {
@@ -28,6 +33,43 @@ def deb_architecture(ansible_architecture):
     return deb_architectures.get(ansible_architecture, "unknown")
 
 
+def next_subids(subids, count=65536):
+    """Get the next available subid record."""
+    records = []
+    for line in subids.split("\n"):
+        line = line.strip()
+        if line == "":
+            continue
+        (uname, base_id, length) = line.split(":")
+        base_id = int(base_id)
+        length = int(length)
+        records.append((uname, base_id, length))
+
+    records = sorted(records, key=lambda item: item[1])
+    max_base_id = 0
+    last_id = 0
+    last_length = 0
+    gaps = []
+    for _, base_id, length in records:
+        expected_base = last_id + last_length
+        if expected_base != 0 and (expected_base < base_id):
+            gap_length = base_id - expected_base
+            gaps.append((expected_base, gap_length))
+
+        max_base_id = max(max_base_id, base_id)
+        last_id = base_id
+        last_length = length
+
+    gaps.append((last_id + last_length, count))
+
+    for gap in gaps:
+        if gap[1] >= count:
+            return f"{gap[0]}:{count}"
+
+    # In theory, this line is never reached
+    raise ValueError("Could not determine next sub id")
+
+
 class FilterModule:
     """Utility filters."""
 
@@ -36,4 +78,5 @@ class FilterModule:
         return {
             "deb_architecture": deb_architecture,
             "dict2tuple": dict2tuple,
+            "next_subids": next_subids,
         }

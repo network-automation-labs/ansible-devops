@@ -126,6 +126,7 @@ class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
                 always_ask_default_resolver=False,
                 server=["1.1.1.1"],
             )
+            display.warning(f"DNS CHALLENGE: {type(dns_challenge)}")
             # 7. Perform challenge
             self.run_remote_module(
                 "community.crypto.acme_certificate",
@@ -141,6 +142,7 @@ class ActionModule(CryptoPluginMixin, ActionPluginMixin, ActionBase):
                 data=dns_challenge,
                 force=True,
             )
+            display.warning("Challenge completed")
             # self.display_changed(f"Wrote certificate to {module_args['path']}")
             result["changed"] = True
 

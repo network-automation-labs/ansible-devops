@@ -2,7 +2,13 @@
 
 from typing import Any
 
-from ansible.errors import AnsibleFilterTypeError
+import ansible.errors
+
+try:
+    AnsibleTypeError = ansible.errors.AnsibleTypeError  # type: ignore
+except AttributeError:
+    AnsibleTypeError = ansible.errors.AnsibleFilterTypeError
+
 from ansible.utils.display import Display
 from netaddr import AddrFormatError, IPAddress
 
@@ -30,7 +36,7 @@ def create_rule(rule_var: dict[str, Any]) -> str:
     action = rule_var.pop("action", "").lower()
 
     if action not in ACTIONS:
-        raise AnsibleFilterTypeError(
+        raise AnsibleTypeError(
             f"{action} is not a valid action, must be one of {ACTIONS}"
         )
 
@@ -47,7 +53,7 @@ def create_rule(rule_var: dict[str, Any]) -> str:
 
     if sport or dport:
         if not proto:
-            raise AnsibleFilterTypeError(
+            raise AnsibleTypeError(
                 "Protocol must be specified when given source or destination port."
             )
         if sport:

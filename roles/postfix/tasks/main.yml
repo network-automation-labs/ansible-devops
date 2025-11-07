@@ -52,7 +52,7 @@
     group: "root"
     mode: "600"
   notify: "rebuild sasl database"
-  when: "postfix.relay.auth"
+  when: "postfix.relay.auth is defined"
 
 - name: "Base Configuration"
   ansible.builtin.lineinfile:
@@ -80,4 +80,4 @@
     - { regexp: "^smtp_sasl_password_maps = ", line: "smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd" }
     - { regexp: "^smtp_sasl_security_options = ", line: "smtp_sasl_security_options = noanonymous" }
   notify: "restart postfix"
-  when: "postfix.relay.auth"
+  when: "postfix.relay.auth is defined"

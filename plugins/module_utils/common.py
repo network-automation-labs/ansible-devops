@@ -1,23 +1,22 @@
 import base64
+import os
+from contextlib import contextmanager
+from functools import wraps
+from os import path
+from tempfile import mkstemp
 from typing import Any
+
+from ansible import constants as C
 from ansible.errors import AnsibleError
 from ansible.plugins.loader import connection_loader
 from ansible.utils.display import Display
-from ansible import constants as C
-
-
-from contextlib import contextmanager
-from functools import wraps
-import os
-from os import path
-from tempfile import mkstemp
 
 from .types import ActionBaseProtocol
 
 display = Display()
 
 
-def list_action_plugins(filter_predicate = None):
+def list_action_plugins(filter_predicate=None):
     filenames = os.listdir(path.join(path.dirname(__file__), "..", "action"))
     filenames = filter(lambda filename: filename.endswith(".py"), filenames)
     action_plugins = [filename.removesuffix(".py") for filename in filenames]
@@ -25,6 +24,7 @@ def list_action_plugins(filter_predicate = None):
     if filter_predicate:
         action_plugins = filter(filter_predicate, action_plugins)
     return action_plugins
+
 
 class RunFailedError(AnsibleError):
     def __init__(self, msg: str, result: dict):
@@ -39,7 +39,9 @@ def raise_on_failure(wrapped):
         if result is not None and "failed" in result:
             raise RunFailedError(result.get("msg", "Error occurred"), result)
         return result
+
     return wrapper
+
 
 class ActionPluginMixin(ActionBaseProtocol):
     def run(self, tmp=None, task_vars=None):
@@ -47,13 +49,13 @@ class ActionPluginMixin(ActionBaseProtocol):
             task_vars = {}
         self._task_vars = task_vars
         self.host_label = self._task_vars["inventory_hostname"]
-        return super().run(tmp, task_vars) # type: ignore
+        return super().run(tmp, task_vars)  # type: ignore
 
     def display_changed(self, msg):
-        display.display(f"[{self.host_label}] {msg}", C.COLOR_CHANGED) # type: ignore
+        display.display(f"[{self.host_label}] {msg}", C.COLOR_CHANGED)  # type: ignore
 
     def display_ok(self, msg):
-        display.display(f"[{self.host_label}] {msg}", C.COLOR_UNCHANGED) # type: ignore
+        display.display(f"[{self.host_label}] {msg}", C.COLOR_UNCHANGED)  # type: ignore
 
     @contextmanager
     def tempfile(self, task_vars, dest=None, dest_mode="600"):
@@ -79,10 +81,21 @@ class ActionPluginMixin(ActionBaseProtocol):
         old_connection = self._connection
         old_delegate = self._task.delegate_to
         self._task.delegate_to = "localhost"
-        delegated_vars, _ = self._task._variable_manager.get_delegated_vars_and_hostname(self._templar, self._task, task_vars) # type: ignore
-        task_vars = {**task_vars, **delegated_vars, "ansible_host": "localhost", "ansible_connection": "local"}
-        self._connection = connection_loader.get("local", self._play_context, "/dev/null")
-        result = self._execute_module( # type: ignore
+        delegated_vars, _ = (
+            self._task._variable_manager.get_delegated_vars_and_hostname(
+                self._templar, self._task, task_vars
+            )
+        )  # type: ignore
+        task_vars = {
+            **task_vars,
+            **delegated_vars,
+            "ansible_host": "localhost",
+            "ansible_connection": "local",
+        }
+        self._connection = connection_loader.get(
+            "local", self._play_context, "/dev/null"
+        )
+        result = self._execute_module(  # type: ignore
             module_name,
             module_args=module_args,
             task_vars=task_vars,
@@ -93,12 +106,20 @@ class ActionPluginMixin(ActionBaseProtocol):
 
     @raise_on_failure
     def run_remote_module(self, module_name: str, task_vars, **module_args) -> dict:
-        return self._execute_module( # type: ignore
+        response = self._execute_module(  # type: ignore
             module_name,
             module_args=module_args,
             task_vars=task_vars,
         )
-
+        deprecations = response.pop("deprecations", None)
+        if deprecations:
+            for deprecation in deprecations:
+                display.deprecated(
+                    msg=deprecation.event.msg,
+                    version=deprecation.version,
+                    deprecator=deprecation.deprecator,
+                )
+        return response
 
     @raise_on_failure
     def run_action_plugin(self, plugin_name, task_vars, **module_args) -> dict:
@@ -111,11 +132,13 @@ class ActionPluginMixin(ActionBaseProtocol):
             play_context=self._play_context,
             loader=self._loader,
             templar=self._templar,
-            shared_loader_obj=self._shared_loader_obj
+            shared_loader_obj=self._shared_loader_obj,
         )
         return plugin.run(task_vars=task_vars)
 
-    def load_file_if_exists(self, task_vars, remote_file_path, default_content=None) -> tuple[str|None, bool]:
+    def load_file_if_exists(
+        self, task_vars, remote_file_path, default_content=None
+    ) -> tuple[str | None, bool]:
         content = default_content
         result = self.run_remote_module(
             "ansible.builtin.stat",
@@ -133,10 +156,12 @@ class ActionPluginMixin(ActionBaseProtocol):
             loaded = True
         return content, loaded
 
-    def load_or_content(self, task_vars, remote_path, default_content)-> Any:
+    def load_or_content(self, task_vars, remote_path, default_content) -> Any:
         content = default_content
         if remote_path is not None:
-            content, _ = self.load_file_if_exists(task_vars, remote_path, default_content)
+            content, _ = self.load_file_if_exists(
+                task_vars, remote_path, default_content
+            )
         return content
 
     def load_or_run(self, task_vars, module_args, remote_file_path, callback):

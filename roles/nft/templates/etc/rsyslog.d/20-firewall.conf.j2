@@ -1,3 +1,4 @@
+# Ansible Managed
 # Log kernel generated FIREWALL log messages to file
 $CreateDirs
 :msg,startswith," {{ nftables.log_prefix }}" /var/log/firewall/firewall.log

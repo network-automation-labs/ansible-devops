@@ -1,5 +1,5 @@
 #jinja2:lstrip_blocks: True
-# {{ ansible_managed }}
+# Ansible Managed
 
 table inet filter {
 {% for name, chain in (hostvars[inventory_hostname] | network_automation_labs.devops.nft_extract_config).items() %}

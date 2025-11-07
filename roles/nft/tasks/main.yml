@@ -21,7 +21,7 @@
     mode: "0700"
 
 - name: "Copy Main Config"
-  template: 
+  template:
     src: "etc/nftables.conf.j2"
     dest: "/etc/nftables.conf"
     owner: "root"
@@ -30,7 +30,7 @@
   notify: "restart nft"
 
 - name: "Copy Service Configs"
-  template: 
+  template:
     src: "{{ item }}.j2"
     dest: "/{{ item }}"
     owner: "root"
@@ -47,7 +47,7 @@
 - name: "Disable default firewall services"
   service: "name={{ item }} enabled=no state=stopped"
   ignore_errors: "yes"
-  when: "item in ansible_facts.services"
+  when: "item in ansible_facts['services']"
   with_items:
     - "iptables"
     - "firewalld"
@@ -56,4 +56,3 @@
 
 - name: "Setup logging"
   include_tasks: "log.yml"
-

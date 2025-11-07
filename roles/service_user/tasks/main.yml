@@ -1,0 +1,76 @@
+---
+- name: Create User
+  ansible.builtin.user:
+    name: "{{ service_user.name }}"
+    password: "!"
+    create_home: "{{ service_user.create_home | default(true) }}"
+    system: "{{ service_user.system | default(true) }}"
+    home: "{{ service_user.home | default('/home/'~service_user.name ) }}"
+    shell: "{{ service_user.shell | default('/bin/bash') }}"
+    groups:
+      - "rootless-netman"
+      - "traefik"
+
+- name: "Read SubUIDs"
+  ansible.builtin.slurp:
+    src: "/etc/subuid"
+  register: "service_user_subuids"
+  changed_when: false
+
+- name: "Add Subuids"
+  ansible.builtin.lineinfile:
+    path: "/etc/subuid"
+    regexp: "^{{ service_user.name }}"
+    line: "{{ service_user.name }}:{{ service_user_subuids.content | b64decode | network_automation_labs.devops.next_subids }}"
+    backup: true
+
+- name: "Read SubGIDs"
+  ansible.builtin.slurp:
+    src: "/etc/subgid"
+  register: "service_user_subgids"
+  changed_when: false
+
+- name: "Add Subgids"
+  ansible.builtin.lineinfile:
+    path: "/etc/subgid"
+    regexp: "^{{ service_user.name }}"
+    line: "{{ service_user.name }}:{{ service_user_subgids.content | b64decode | network_automation_labs.devops.next_subids }}"
+    backup: true
+
+- name: "Lookup UIDs"
+  ansible.builtin.getent:
+    database: "passwd"
+    key: "{{ service_user.name }}"
+  changed_when: false
+
+- name: "Check if user is lingering"
+  ansible.builtin.stat:
+    path: "/var/lib/systemd/linger/{{ service_user.name }}"
+  changed_when: false
+  register: "service_user_lingering"
+
+- name: "Enable lingering if needed"
+  ansible.builtin.command: "loginctl enable-linger {{ service_user.name }}"
+  changed_when: "not service_user_lingering.stat.exists"
+  when: "not service_user_lingering.stat.exists"
+
+- name: "Run user tasks"
+  become: true
+  become_user: "{{ service_user.name }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['getent_passwd'][service_user.name][1] }}"
+  block:
+    - name: "Start User Services"
+      ansible.builtin.systemd_service:
+        scope: "user"
+        name: "{{ item }}"
+        enabled: "true"
+        state: "started"
+      with_items:
+        - "podman.service"
+        - "traefik-watch.service"
+
+    - name: "Create User Traefik Network"
+      containers.podman.podman_network:
+        name: "systemd-traefik"
+        driver: "rootless-netman"

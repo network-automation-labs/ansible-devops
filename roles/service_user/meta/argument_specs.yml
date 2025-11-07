@@ -1,0 +1,27 @@
+---
+argument_specs:
+  main:
+    description: "Argument specifications for service_user role"
+    options:
+      service_user:
+        type: "dict"
+        required: true
+        options:
+          name:
+            type: "str"
+            required: true
+          home:
+            type: "str"
+            required: false
+          shell:
+            type: "str"
+            required: false
+            default: "/bin/bash"
+          create_home:
+            type: "bool"
+            required: false
+            default: true
+          system:
+            type: "bool"
+            required: false
+            default: true

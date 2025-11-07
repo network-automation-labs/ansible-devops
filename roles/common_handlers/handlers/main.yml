@@ -1,0 +1,12 @@
+---
+- name: "Systemd Daemon Reload"
+  listen: "systemd daemon-reload"
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: "Restart Traefik"
+  listen: "restart traefik"
+  vars:
+    service_name: "traefik.service"
+  ansible.builtin.include_tasks:
+    file: restart_service.yml

@@ -1,0 +1,5 @@
+- asible.builtin.service_facts:
+- ansible.builtin.systemd:
+    name: "traefik.service"
+    state: "restarted"
+  when: "'traefik.service' in ansible_facts.services and ansible_facts.services['traefik.service'].state == 'running'"

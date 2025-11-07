@@ -1,0 +1,3 @@
+---
+dependencies:
+  - role: "network_automation_labs.devops.common_handlers"

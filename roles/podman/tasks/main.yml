@@ -1,0 +1,39 @@
+---
+- name: "Install Podman"
+  package:
+    name:
+      - podman
+    state: latest
+  notify: "systemd daemon-reload"
+
+# NOTE: The following steps are only necessary until a newer Netavark is available
+# in the distro repos
+- name: "Determine Latest Netavark Version"
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/containers/netavark/releases/latest"
+    method: GET
+    return_content: yes
+    status_code: 200
+    body_format: json
+  register: "netavark_release"
+
+- ansible.builtin.set_fact:
+    netavark_gz: "{{ netavark_release.json.assets | selectattr('name', '==', 'netavark.gz') | first }}"
+
+- name: "Install Netavark"
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ netavark_gz.browser_download_url }}"
+    dest: "/usr/lib/podman/netavark.gz"
+    force: true
+
+- name: "Unarchive Netavark"
+  become: true
+  ansible.builtin.command:
+    cmd: "gunzip -f /usr/lib/podman/netavark.gz"
+
+- name: "Set Netavark Permissions"
+  become: true
+  ansible.builtin.file:
+    mode: "0755"
+    path: "/usr/lib/podman/netavark"

@@ -1,0 +1,5 @@
+---
+dependencies:
+  - role: "network_automation_labs.devops.common_handlers"
+  - role: "network_automation_labs.devops.tls_cert"
+  - role: "network_automation_labs.devops.nal_repo"

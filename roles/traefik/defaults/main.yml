@@ -1,0 +1,7 @@
+---
+traefik_config:
+  user: "traefik"
+  group: "traefik"
+  subnet: "10.87.0.0/24"
+  ip_range: "10.87.0.2-10.87.0.254"
+  gateway: "10.87.0.1"

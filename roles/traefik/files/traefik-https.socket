@@ -1,0 +1,8 @@
+[Socket]
+ListenStream=[::]:443
+FileDescriptorName=https
+BindIPv6Only=both
+Service=traefik.service
+
+[Install]
+WantedBy=sockets.target

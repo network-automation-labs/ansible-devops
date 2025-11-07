@@ -1,0 +1,102 @@
+---
+- name: "Create Service Group"
+  ansible.builtin.group:
+    name: "{{ traefik_config.group }}"
+    system: true
+    state: "present"
+
+- name: "Create Service User"
+  ansible.builtin.user:
+    name: "{{ traefik_config.user }}"
+    group: "{{ traefik_config.group }}"
+    create_home: false
+    system: true
+    shell: "/sbin/nologin"
+    state: "present"
+
+- name: "Copy Systemd Socket Units"
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "/usr/lib/systemd/system/{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - path: "traefik-http.socket"
+      owner: "root"
+      group: "root"
+      mode: "0644"
+
+    - path: "traefik-https.socket"
+      owner: "root"
+      group: "root"
+      mode: "0644"
+
+    - path: "traefik-api.socket"
+      owner: "root"
+      group: "root"
+      mode: "0644"
+  notify: "systemd daemon-reload"
+
+- name: "Create config directories"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+    state: "directory"
+  with_items:
+    - path: "/etc/traefik"
+      owner: "{{ traefik_config.user }}"
+      group: "{{ traefik_config.group }}"
+      mode: "0700"
+
+    - path: "/etc/traefik/conf.d"
+      owner: "{{ traefik_config.user }}"
+      group: "{{ traefik_config.group }}"
+      mode: "0700"
+
+- name: "Generate Configs"
+  ansible.builtin.template:
+    src: "{{ item.name }}.j2"
+    dest: "/{{ item.name }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - name: etc/traefik/traefik.yml
+      owner: "root"
+      group: "root"
+      mode: "0644"
+
+    - name: etc/traefik/conf.d/default.yml
+      owner: "root"
+      group: "root"
+      mode: "0644"
+
+    - name: etc/containers/systemd/traefik.container
+      owner: "root"
+      group: "root"
+      mode: "0644"
+
+    - name: etc/containers/systemd/traefik.network
+      owner: "root"
+      group: "root"
+      mode: "0644"
+  notify: "systemd daemon-reload"
+
+- name: "Install Configuration Packages"
+  ansible.builtin.package:
+    name:
+      - rootless-netman
+      - traefik-watch
+  notify: "systemd daemon-reload"
+
+- name: "Enable Traefik Services"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: "started"
+  with_items:
+    - "traefik.service"
+    - "rootless-netman.service"

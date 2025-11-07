@@ -1,0 +1,16 @@
+[Unit]
+After=traefik-http.socket traefik-https.socket traefik-api.socket
+Requires=traefik-http.socket traefik-https.socket traefik-api.socket
+
+[Service]
+Sockets=traefik-http.socket traefik-https.socket traefik-api.socket
+
+[Container]
+Image=docker.io/library/traefik
+AutoUpdate=registry
+Network=traefik.network
+Notify=true
+
+Volume=/etc/traefik:/etc/traefik
+Volume=/etc/ssl/private/{{ inventory_hostname}}.pem:/etc/ssl/private/{{ inventory_hostname}}.pem
+Volume=/etc/ssl/certs/{{ inventory_hostname}}.pem:/etc/ssl/certs/{{ inventory_hostname}}.pem

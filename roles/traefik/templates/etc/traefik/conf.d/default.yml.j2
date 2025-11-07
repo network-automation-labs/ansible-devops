@@ -1,0 +1,45 @@
+#jinja2:lstrip_blocks: True
+---
+http:
+  routers:
+    traefik:
+      rule: 'Host(`{{ inventory_hostname }}`)'
+      service: api@internal
+      entryPoints:
+        - traefik
+      middlewares:
+        - adminAuth
+      tls: {}
+
+    http:
+      rule: 'hostregexp(`{host:.+}`)'
+      entryPoints:
+        - http
+      service: noop
+      middlewares:
+        - redirect
+  middlewares:
+    redirect:
+      redirectScheme:
+        scheme: https
+    adminAuth:
+      digestAuth:
+        users:
+          - "admin:traefik:admin"
+    securityHeaders:
+      headers:
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 315360000
+  services:
+    noop:
+      loadBalancer:
+        servers:
+          - url: 'http://127.0.0.1'
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/ssl/certs/{{ inventory_hostname }}.pem
+        keyFile: /etc/ssl/private/{{ inventory_hostname }}.pem

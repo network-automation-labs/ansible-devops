@@ -1,13 +1,13 @@
-- name: Install SSH
-  package:
-    name: openssh-server
-    state: latest
+- name: "Install SSH"
+  ansible.builtin.package:
+    name: "openssh-server"
+    state: "present"
 
-- name: Remove root SSH access
-  notify: 
-  - restart ssh
-  lineinfile: 
-    dest: /etc/ssh/sshd_config 
-    regexp: "^PermitRootLogin" 
-    line: "PermitRootLogin no" 
-    state: present
+- name: "Remove root SSH access"
+  notify:
+    - "restart ssh"
+  ansible.builtin.lineinfile:
+    dest: "/etc/ssh/sshd_config"
+    regexp: "^PermitRootLogin"
+    line: "PermitRootLogin no"
+    state: "present"

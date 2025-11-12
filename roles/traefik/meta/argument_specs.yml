@@ -1,0 +1,40 @@
+---
+argument_specs:
+  main:
+    description: "Argument specifications for traefik role"
+    options:
+      traefik_config:
+        type: "dict"
+        required: false
+        options:
+          user:
+            type: "str"
+            required: false
+            default: "traefik"
+          group:
+            type: "str"
+            required: false
+            default: "traefik"
+          subnet:
+            type: "str"
+            required: false
+            default: "10.87.0.0/24"
+          ip_range:
+            type: "str"
+            required: false
+            default: "10.87.0.2-10.87.0.254"
+          gateway:
+            type: "str"
+            required: false
+            default: "10.87.0.1"
+          admin_accounts:
+            required: true
+            type: "list"
+            elements: "dict"
+            options:
+              username:
+                type: str
+                required: true
+              password:
+                type: str
+                required: true

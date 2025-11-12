@@ -9,4 +9,4 @@
   vars:
     service_name: "traefik.service"
   ansible.builtin.include_tasks:
-    file: restart_service.yml
+    file: "tasks/check_reload.yml"

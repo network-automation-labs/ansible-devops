@@ -4,6 +4,7 @@
 ### dotenv ###
 .env
 ansible_collections
+.ansible
 
 ### Emacs ###
 # -*- mode: gitignore; -*-

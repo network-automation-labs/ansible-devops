@@ -68,12 +68,12 @@
     - path: "/etc/traefik"
       owner: "{{ traefik_config.user }}"
       group: "{{ traefik_config.group }}"
-      mode: "0700"
+      mode: "0750"
 
     - path: "/etc/traefik/conf.d"
       owner: "{{ traefik_config.user }}"
       group: "{{ traefik_config.group }}"
-      mode: "0700"
+      mode: "u=rwx,g=rwx,g+s"
 
 - name: "Generate Configs"
   ansible.builtin.template:

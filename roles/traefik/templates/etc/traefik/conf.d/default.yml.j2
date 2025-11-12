@@ -25,7 +25,9 @@ http:
     adminAuth:
       digestAuth:
         users:
-          - "admin:traefik:admin"
+          {% for user in traefik_config.admin_accounts %}
+          - "{{ user.username }}:traefik:{{ user.password | password_hash(hashtype='bcrypt') }}"
+          {% endfor %}
     securityHeaders:
       headers:
         stsIncludeSubdomains: true

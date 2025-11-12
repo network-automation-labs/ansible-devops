@@ -1,12 +1,21 @@
 ---
+- name: "Set Defaults"
+  ansible.builtin.set_fact:
+    service_user_facts:
+      name: "{{ service_user.name }}"
+      home: "{{ service_user.home | default('/home/'~service_user.name ) }}"
+      shell: "{{ service_user.shell | default('/bin/bash') }}"
+      create_home: "{{ service_user.create_home | default(true) }}"
+      system: "{{ service_user.system | default(false) }}"
+
 - name: Create User
   ansible.builtin.user:
-    name: "{{ service_user.name }}"
+    name: "{{ service_user_facts.name }}"
     password: "!"
-    create_home: "{{ service_user.create_home | default(true) }}"
-    system: "{{ service_user.system | default(true) }}"
-    home: "{{ service_user.home | default('/home/'~service_user.name ) }}"
-    shell: "{{ service_user.shell | default('/bin/bash') }}"
+    create_home: "{{ service_user_facts.create_home }}"
+    system: "{{ service_user_facts.system }}"
+    home: "{{ service_user_facts.home }}"
+    shell: "{{ service_user_facts.shell }}"
     groups:
       - "rootless-netman"
       - "traefik"
@@ -29,8 +38,8 @@
 - name: "Add Subuids"
   ansible.builtin.lineinfile:
     path: "/etc/subuid"
-    regexp: "^{{ service_user.name }}"
-    line: "{{ service_user.name }}:{{ service_user_subuids.content | b64decode | network_automation_labs.devops.next_subids }}"
+    regexp: "^{{ service_user_facts.name }}:\\d+:\\d+$"
+    line: "{{ service_user_subuids.content | b64decode | network_automation_labs.devops.next_subids(service_user_facts.name) }}"
     backup: true
 
 - name: "Read SubGIDs"
@@ -42,32 +51,36 @@
 - name: "Add Subgids"
   ansible.builtin.lineinfile:
     path: "/etc/subgid"
-    regexp: "^{{ service_user.name }}"
-    line: "{{ service_user.name }}:{{ service_user_subgids.content | b64decode | network_automation_labs.devops.next_subids }}"
+    regexp: "^{{ service_user_facts.name }}"
+    line: "{{ service_user_subgids.content | b64decode | network_automation_labs.devops.next_subids(service_user_facts.name) }}"
     backup: true
 
 - name: "Lookup UIDs"
   ansible.builtin.getent:
     database: "passwd"
-    key: "{{ service_user.name }}"
+    key: "{{ service_user_facts.name }}"
   changed_when: false
+
+- name: "Set UID/GID Facts"
+  ansible.builtin.set_fact:
+    service_user_facts: "{{ service_user_facts | network_automation_labs.devops.set_uid_gid(ansible_facts, service_user_facts.name) }}"
 
 - name: "Check if user is lingering"
   ansible.builtin.stat:
-    path: "/var/lib/systemd/linger/{{ service_user.name }}"
+    path: "/var/lib/systemd/linger/{{ service_user_facts.name }}"
   changed_when: false
   register: "service_user_lingering"
 
 - name: "Enable lingering if needed"
-  ansible.builtin.command: "loginctl enable-linger {{ service_user.name }}"
+  ansible.builtin.command: "loginctl enable-linger {{ service_user_facts.name }}"
   changed_when: "not service_user_lingering.stat.exists"
   when: "not service_user_lingering.stat.exists"
 
 - name: "Run user tasks"
   become: true
-  become_user: "{{ service_user.name }}"
+  become_user: "{{ service_user_facts.name }}"
   environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['getent_passwd'][service_user.name][1] }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ service_user_facts.uid }}"
   block:
     - name: "Start User Services"
       ansible.builtin.systemd_service:

@@ -10,6 +10,15 @@
     groups:
       - "rootless-netman"
       - "traefik"
+    append: true
+
+- name: "Copy Profile Env Setup"
+  ansible.builtin.copy:
+    src: "etc/profile.d/nal-service.sh"
+    dest: "/etc/profile.d/nal-service.sh"
+    owner: "root"
+    group: "root"
+    mode: "0644"
 
 - name: "Read SubUIDs"
   ansible.builtin.slurp:

@@ -1,3 +1,4 @@
+#jinja2:lstrip_blocks: True
 ---
 entryPoints:
   http:
@@ -14,3 +15,9 @@ api:
 providers:
   file:
     directory: "/etc/traefik/conf.d"
+{% if traefik_docker_enabled | default(false) %}
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    watch: true
+    exposedbydefault: false
+{% endif %}

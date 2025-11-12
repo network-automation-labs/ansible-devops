@@ -1,0 +1,8 @@
+[Network]
+Internal=true
+Driver=
+DisableDNS=true
+IPAMDriver=host-local
+Subnet={{ traefik_legacy_network }}
+Driver=macvlan
+Options=parent={{ traefik_legacy_interface }}

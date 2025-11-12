@@ -9,8 +9,14 @@ Sockets=traefik-http.socket traefik-https.socket traefik-api.socket
 Image=docker.io/library/traefik
 AutoUpdate=registry
 Network=traefik.network
+{% if traefik_docker_enabled | default(false) %}
+Network=legacy-traefik.network:ip={{ traefik_legacy_network | ansible.utils.ipaddr('-2') | ansible.utils.ipaddr('address') }}
+{% endif %}
 Notify=true
 
 Volume=/etc/traefik:/etc/traefik
 Volume=/etc/ssl/private/{{ inventory_hostname}}.pem:/etc/ssl/private/{{ inventory_hostname}}.pem
 Volume=/etc/ssl/certs/{{ inventory_hostname}}.pem:/etc/ssl/certs/{{ inventory_hostname}}.pem
+{% if traefik_docker_enabled | default(false) %}
+Volume=/var/run/docker.sock:/var/run/docker.sock
+{% endif %}

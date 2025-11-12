@@ -1,4 +1,23 @@
 ---
+- name: "Stat Docker Socket"
+  ansible.builtin.stat:
+    path: "/var/run/docker.sock"
+  register: "traefik_docker"
+
+- name: "Determine if Docker Compatibility is Required"
+  when: "traefik_docker.stat.exists"
+  block:
+    - name: "Get legacy traefik network info"
+      community.docker.docker_network_info:
+        name: "traefik"
+      register: "traefik_legacy_network_info"
+
+    - name: "Set docker compatibility vars"
+      ansible.builtin.set_fact:
+        traefik_docker_enabled: "{{  traefik_docker.stat.exists }}"
+        traefik_legacy_network: "{{ traefik_legacy_network_info.network.IPAM.Config[0].Subnet }}"
+        traefik_legacy_interface: "br-{{ traefik_legacy_network_info.network.Id[:12] }}"
+
 - name: "Create Service Group"
   ansible.builtin.group:
     name: "{{ traefik_config.group }}"
@@ -83,7 +102,12 @@
       owner: "root"
       group: "root"
       mode: "0644"
-  notify: "systemd daemon-reload"
+
+    - name: etc/containers/systemd/legacy-traefik.network
+      owner: "root"
+      group: "root"
+      mode: "0644"
+      create: "{{ traefik_docker_enabled }}"
 
 - name: "Install Configuration Packages"
   ansible.builtin.package:

@@ -33,24 +33,26 @@ def deb_architecture(ansible_architecture):
     return deb_architectures.get(ansible_architecture, "unknown")
 
 
-def next_subids(subids, count=65536):
+def next_subids(subids, username, count=65536):
     """Get the next available subid record."""
     records = []
     for line in subids.split("\n"):
         line = line.strip()
         if line == "":
             continue
-        (uname, base_id, length) = line.split(":")
+        (subid_username, base_id, length) = line.split(":")
+        if username == subid_username:
+            return f"{username}:{base_id}:{length}"
         base_id = int(base_id)
         length = int(length)
-        records.append((uname, base_id, length))
+        records.append((base_id, length))
 
     records = sorted(records, key=lambda item: item[1])
     max_base_id = 0
     last_id = 0
     last_length = 0
     gaps = []
-    for _, base_id, length in records:
+    for base_id, length in records:
         expected_base = last_id + last_length
         if expected_base != 0 and (expected_base < base_id):
             gap_length = base_id - expected_base
@@ -64,10 +66,18 @@ def next_subids(subids, count=65536):
 
     for gap in gaps:
         if gap[1] >= count:
-            return f"{gap[0]}:{count}"
+            return f"{username}:{gap[0]}:{count}"
 
     # In theory, this line is never reached
     raise ValueError("Could not determine next sub id")
+
+
+def set_uid_gid(config_dict, ansible_facts, username):
+    return {
+        **config_dict,
+        "uid": ansible_facts["getent_passwd"][username][1],
+        "gid": ansible_facts["getent_passwd"][username][2],
+    }
 
 
 class FilterModule:
@@ -79,4 +89,5 @@ class FilterModule:
             "deb_architecture": deb_architecture,
             "dict2tuple": dict2tuple,
             "next_subids": next_subids,
+            "set_uid_gid": set_uid_gid,
         }

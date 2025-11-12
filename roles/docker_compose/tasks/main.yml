@@ -1,0 +1,83 @@
+---
+- name: "Setup Vars"
+  ansible.builtin.set_fact:
+    docker_compose_files: []
+
+- name: "Setup Service User"
+  ansible.builtin.include_role:
+    name: network_automation_labs.devops.service_user
+  vars:
+    service_user: "{{ docker_compose.user }}"
+
+- name: Create Config Directories
+  ansible.builtin.file:
+    path: "{{ service_user_facts.home }}/{{ item }}"
+    state: "directory"
+    owner: "{{ service_user_facts.name }}"
+    group: "{{ service_user_facts.name }}"
+    mode: "0750"
+  with_items: "{{ docker_compose.directories | default([]) }}"
+
+- name: Create config
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ service_user_facts.home }}/{{ item }}"
+    owner: "{{ service_user_facts.name }}"
+    group: "{{ service_user_facts.name }}"
+    mode: "0640"
+  with_items: "{{ docker_compose.templates | default([]) }}"
+
+- name: "Retrieve Upstream Compose Files"
+  when: "docker_compose.upstream_definitions is defined"
+  block:
+    - name: "Fetch Compose File"
+      ansible.builtin.get_url:
+        dest: "{{ service_user_facts.home }}/{{ item.name }}"
+        url: "{{ item.url }}"
+        owner: "{{ service_user_facts.name }}"
+        group: "{{ service_user_facts.name }}"
+        mode: "0640"
+      with_items: "{{ docker_compose.upstream_definitions | default([]) }}"
+    - name: "Record Compose File Name"
+      ansible.builtin.set_fact:
+        docker_compose_files: "{{ docker_compose_files + (docker_compose.upstream_definitions | map(attribute='name')) }}"
+
+- name: "Create Main Compose File"
+  when: "docker_compose.definition is defined"
+  block:
+    - name: "Generate Compose File From Definition"
+      ansible.builtin.copy:
+        dest: "{{ service_user_facts.home }}/docker-compose.yml"
+        content: "{{ docker_compose.definition | to_nice_yaml(indent=4) }}"
+        owner: "{{ service_user_facts.name }}"
+        group: "{{ service_user_facts.name }}"
+        mode: "0640"
+    - name: "Record Compose File Name"
+      ansible.builtin.set_fact:
+        docker_compose_files: "{{ docker_compose_files + ['docker-compose.yml'] }}"
+
+- name: "Create Main Compose File From Template"
+  when: "docker_compose.definition_template is defined"
+  block:
+    - name: "Generate Compose File"
+      ansible.builtin.template:
+        src: "{{ docker_compose.definition_template }}"
+        dest: "{{ service_user_facts.home }}/docker-compose.yml"
+        owner: "{{ service_user_facts.name }}"
+        group: "{{ service_user_facts.name }}"
+        mode: "0640"
+    - name: "Record Compose File Name"
+      ansible.builtin.set_fact:
+        docker_compose_files: "{{ docker_compose_files + ['docker-compose.yml'] }}"
+
+- name: "Launch Service"
+  become: true
+  become_user: "{{ service_user_facts.name }}"
+  community.docker.docker_compose_v2:
+    docker_host: "unix:///run/user/{{ service_user_facts.uid }}/podman/podman.sock"
+    project_name: "{{ service_user_facts.name }}"
+    state: present
+    recreate: always
+    remove_orphans: true
+    files: "{{ docker_compose_files }}"
+    project_src: "{{ service_user_facts.home }}"

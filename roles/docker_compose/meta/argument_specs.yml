@@ -1,0 +1,59 @@
+---
+argument_specs:
+  main:
+    description: "Argument specifications for docker_compose role"
+    options:
+      docker_compose:
+        type: "dict"
+        required: true
+        options:
+          user:
+            type: "dict"
+            required: true
+            options:
+              name:
+                type: "str"
+                required: true
+              home:
+                type: "str"
+                required: false
+              shell:
+                type: "str"
+                required: false
+                default: "/bin/bash"
+              create_home:
+                type: "bool"
+                required: false
+                default: true
+              system:
+                type: "bool"
+                required: false
+                default: true
+          directories:
+            type: "list"
+            required: false
+            elements: "str"
+          templates:
+            type: "list"
+            required: false
+            elements: "str"
+          definition:
+            required: false
+            type: "dict"
+          definition_template:
+            required: false
+            type: "str"
+          upstream_definitions:
+            required: false
+            type: "list"
+            elements: "dict"
+            options:
+              name:
+                type: "str"
+                required: true
+              url:
+                type: "str"
+                required: true
+        mutually_exclusive:
+          - "definition"
+          - "definition_template"

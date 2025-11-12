@@ -14,6 +14,7 @@ dependencies:
   community.crypto: "*"
   community.dns: "*"
   containers.podman: "*"
+  community.docker: "*"
 
 repository: https://github.com/network_automation_labs/ansible-devops
 issues: https://github.com/network_automation_labs/ansible-devops/issues

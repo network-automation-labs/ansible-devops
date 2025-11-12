@@ -82,6 +82,10 @@
     owner: "{{ item.owner }}"
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
+  notify:
+    - "systemd daemon-reload"
+    - "restart traefik"
+  when: "item.create | default(true)"
   with_items:
     - name: etc/traefik/traefik.yml
       owner: "root"

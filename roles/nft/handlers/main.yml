@@ -1,11 +1,11 @@
 ---
-- name: "restart nft service"
+- name: "Restart nft service"
   listen: "restart nft"
   ansible.builtin.command: "/etc/nftables.conf"
+  changed_when: false
 
-- name: reload rsyslog
+- name: "Reload rsyslog"
   listen: "restart rsyslog"
-  service:
+  ansible.builtin.service:
     name: "rsyslog"
     state: "restarted"
-

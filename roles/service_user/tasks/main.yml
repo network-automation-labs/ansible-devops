@@ -92,7 +92,14 @@
         - "podman.service"
         - "traefik-watch.service"
 
-    - name: "Create User Traefik Network"
+    - name: "Look for pre-existing rootless Traefik Network"
+      containers.podman.podman_network_info:
+        name: "systemd-traefik"
+      register: "service_user_network_info"
+      failed_when: false
+
+    - name: "Create rootless Traefik Network"
+      when: "service_user_network_info.networks is not defined"
       containers.podman.podman_network:
         name: "systemd-traefik"
         driver: "rootless-netman"

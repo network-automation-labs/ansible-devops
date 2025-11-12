@@ -33,6 +33,15 @@
     shell: "/sbin/nologin"
     state: "present"
 
+- name: "Lookup UID/GID"
+  ansible.builtin.getent:
+    database: "passwd"
+    key: "{{ traefik_config.user }}"
+
+- name: "Set traefik UID/GID"
+  ansible.builtin.set_fact:
+    traefik_config: "{{ traefik_config | network_automation_labs.devops.set_uid_gid(ansible_facts, traefik_config.user) }}"
+
 - name: "Copy Systemd Socket Units"
   ansible.builtin.copy:
     src: "{{ item.path }}"
